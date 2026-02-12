@@ -1,0 +1,21 @@
+[package]
+name = "vrf-ark"
+version = "0.1.0"
+edition = "2021"
+description = "Verifiable Random Function (VRF) example for OutLayer"
+
+[[bin]]
+name = "vrf-ark"
+path = "src/main.rs"
+
+[dependencies]
+# TODO: change to `outlayer = "0.2"` after publishing SDK with VRF support
+outlayer = { path = "../../sdk/outlayer" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[profile.release]
+opt-level = "z"
+lto = true
+strip = true
+codegen-units = 1
