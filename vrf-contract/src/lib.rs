@@ -8,8 +8,8 @@ use types::{CoinSide, VrfEntry, VrfResponse};
 /// Minimum deposit to cover OutLayer execution cost
 const MIN_DEPOSIT: u128 = 10_000_000_000_000_000_000_000; // 0.01 NEAR
 
-/// Fixed gas for callback
-const CALLBACK_GAS: u64 = 10_000_000_000_000; // 10 TGas (need more for ed25519_verify)
+/// Fixed gas for callback (ed25519_verify costs ~26 TGas)
+const CALLBACK_GAS: u64 = 50_000_000_000_000; // 50 TGas
 
 /// External contract interface for OutLayer
 #[ext_contract(ext_outlayer)]
