@@ -11,9 +11,6 @@ const MIN_DEPOSIT: u128 = 10_000_000_000_000_000_000_000; // 0.01 NEAR
 /// Fixed gas for callback
 const CALLBACK_GAS: u64 = 10_000_000_000_000; // 10 TGas (need more for ed25519_verify)
 
-/// OutLayer contract ID
-const OUTLAYER_CONTRACT_ID: &str = "outlayer.near";
-
 /// External contract interface for OutLayer
 #[ext_contract(ext_outlayer)]
 #[allow(dead_code)]
@@ -45,15 +42,16 @@ trait ExtSelf {
 #[derive(BorshDeserialize, BorshSerialize)]
 #[borsh(crate = "near_sdk::borsh")]
 pub struct VrfCoinFlipContract {
+    outlayer_contract_id: AccountId,
+    /// OutLayer project ID (e.g. "alice.near/vrf-ark")
+    project_id: String,
     /// VRF public key bytes (set once via set_vrf_pubkey)
     vrf_pubkey: Vec<u8>,
 }
 
 impl Default for VrfCoinFlipContract {
     fn default() -> Self {
-        Self {
-            vrf_pubkey: Vec::new(),
-        }
+        env::panic_str("Contract must be initialized with new()")
     }
 }
 
@@ -61,11 +59,17 @@ impl Default for VrfCoinFlipContract {
 impl VrfCoinFlipContract {
     /// Initialize with VRF public key
     #[init]
-    pub fn new(vrf_pubkey_hex: String) -> Self {
+    pub fn new(outlayer_contract_id: AccountId, project_id: String, vrf_pubkey_hex: String) -> Self {
+        assert!(!project_id.is_empty(), "project_id cannot be empty");
         let vrf_pubkey = hex::decode(&vrf_pubkey_hex)
             .unwrap_or_else(|_| env::panic_str("Invalid VRF pubkey hex"));
         assert_eq!(vrf_pubkey.len(), 32, "VRF pubkey must be 32 bytes");
-        Self { vrf_pubkey }
+
+        Self {
+            outlayer_contract_id,
+            project_id,
+            vrf_pubkey,
+        }
     }
 
     /// Update VRF public key (owner only)
@@ -83,6 +87,11 @@ impl VrfCoinFlipContract {
     /// Get current VRF public key
     pub fn get_vrf_pubkey(&self) -> String {
         hex::encode(&self.vrf_pubkey)
+    }
+
+    /// Get project ID
+    pub fn get_project_id(&self) -> &str {
+        &self.project_id
     }
 
     /// Flip a coin with verifiable randomness
@@ -111,10 +120,8 @@ impl VrfCoinFlipContract {
         );
 
         let source = near_sdk::serde_json::json!({
-            "GitHub": {
-                "repo": "https://github.com/example/vrf-ark",
-                "commit": "main",
-                "build_target": "wasm32-wasip2"
+            "Project": {
+                "project_id": self.project_id,
             }
         });
 
@@ -127,7 +134,7 @@ impl VrfCoinFlipContract {
         // Request VRF with seed "coin-flip", max=1 (0=Heads, 1=Tails)
         let input = r#"{"seed":"coin-flip","max":1}"#.to_string();
 
-        ext_outlayer::ext(OUTLAYER_CONTRACT_ID.parse().unwrap())
+        ext_outlayer::ext(self.outlayer_contract_id.clone())
             .with_attached_deposit(NearToken::from_yoctonear(attached))
             .with_unused_gas_weight(1)
             .request_execution(

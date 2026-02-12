@@ -1,4 +1,4 @@
-use outlayer::vrf;
+use outlayer::{env, storage, vrf};
 use serde::{Deserialize, Serialize};
 use std::io::{self, Read, Write};
 
@@ -30,6 +30,10 @@ struct VrfEntry {
 
 #[derive(Serialize)]
 struct Output {
+    /// Signer account
+    signer: String,
+    /// Total VRF calls by this signer
+    total_calls: i64,
     /// VRF results (one per requested count)
     results: Vec<VrfEntry>,
     /// How to verify on-chain
@@ -38,6 +42,8 @@ struct Output {
 
 #[derive(Serialize)]
 struct Verification {
+    /// VRF public key (hex) — include directly so verifier doesn't need extra call
+    vrf_public_key: String,
     /// Step-by-step verification instructions
     steps: Vec<String>,
     /// VRF public key endpoint
@@ -88,9 +94,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
     }
 
+    // Track total VRF calls per signer
+    let signer = env::signer_account_id().unwrap_or_default();
+    let total_calls = storage::increment(&format!("vrf_calls:{}", signer), input.count as i64)
+        .unwrap_or(input.count as i64);
+
     let output = Output {
+        signer,
+        total_calls,
         results,
         verification: Verification {
+            vrf_public_key: vrf::public_key().unwrap_or_default(),
             steps: vec![
                 "1. Get VRF public key: GET https://api.outlayer.fastnear.com/vrf/pubkey".into(),
                 "2. For each result, verify: ed25519_verify(vrf_pubkey, alpha.as_bytes(), signature)".into(),
