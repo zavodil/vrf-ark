@@ -1,0 +1,11 @@
+curl -X POST https://testnet-api.outlayer.fastnear.com/call/zavodil2.testnet/vrf-ark \
+  -H "X-Payment-Key: owner:nonce:secret" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "input": {"seed": "test-coin", "max": 1},
+    "resource_limits": {
+      "max_instructions": 10000000000,
+      "max_memory_mb": 128,
+      "max_execution_seconds": 60
+    }
+  }'

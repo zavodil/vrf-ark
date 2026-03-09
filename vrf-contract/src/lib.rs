@@ -6,10 +6,13 @@ use near_sdk::{env, ext_contract, log, near_bindgen, AccountId, NearToken, Promi
 use types::{CoinSide, VrfEntry, VrfResponse};
 
 /// Minimum deposit to cover OutLayer execution cost
-const MIN_DEPOSIT: u128 = 10_000_000_000_000_000_000_000; // 0.01 NEAR
+const MIN_DEPOSIT: u128 = 50_000_000_000_000_000_000_000; // 0.05 NEAR
 
-/// Fixed gas for callback (ed25519_verify costs ~26 TGas)
-const CALLBACK_GAS: u64 = 50_000_000_000_000; // 50 TGas
+/// Fixed gas for callback (ed25519_verify ~1 TGas + deserialization + logs)
+const CALLBACK_GAS: u64 = 10_000_000_000_000; // 10 TGas
+
+/// Gas for request_execution cross-contract call (needs ~120+ TGas)
+const REQUEST_GAS: u64 = 200_000_000_000_000; // 200 TGas
 
 /// External contract interface for OutLayer
 #[ext_contract(ext_outlayer)]
@@ -57,7 +60,14 @@ impl Default for VrfCoinFlipContract {
 
 #[near_bindgen]
 impl VrfCoinFlipContract {
-    /// Initialize with VRF public key
+    /// Initialize contract.
+    ///
+    /// `vrf_pubkey_hex` — Ed25519 public key (32 bytes, hex-encoded) used to verify VRF proofs.
+    /// Get it from: `curl https://api.outlayer.fastnear.com/vrf/pubkey`
+    /// or testnet: `curl https://testnet-api.outlayer.fastnear.com/vrf/pubkey`
+    /// Response: `{"vrf_public_key_hex":"..."}` — pass that value here.
+    ///
+    /// Can be updated later via `set_vrf_pubkey()` (owner only).
     #[init]
     pub fn new(outlayer_contract_id: AccountId, project_id: String, vrf_pubkey_hex: String) -> Self {
         assert!(!project_id.is_empty(), "project_id cannot be empty");
@@ -72,7 +82,8 @@ impl VrfCoinFlipContract {
         }
     }
 
-    /// Update VRF public key (owner only)
+    /// Update VRF public key (owner only).
+    /// Use if the keystore rotates the VRF key.
     pub fn set_vrf_pubkey(&mut self, vrf_pubkey_hex: String) {
         assert_eq!(
             env::predecessor_account_id(),
@@ -110,7 +121,7 @@ impl VrfCoinFlipContract {
 
         assert!(
             attached >= MIN_DEPOSIT,
-            "Minimum deposit is 0.01 NEAR to pay for OutLayer execution"
+            "Minimum deposit is 0.05 NEAR to pay for OutLayer execution"
         );
 
         log!(
@@ -136,7 +147,7 @@ impl VrfCoinFlipContract {
 
         ext_outlayer::ext(self.outlayer_contract_id.clone())
             .with_attached_deposit(NearToken::from_yoctonear(attached))
-            .with_unused_gas_weight(1)
+            .with_static_gas(near_sdk::Gas::from_gas(REQUEST_GAS))
             .request_execution(
                 source,
                 Some(resource_limits),
@@ -163,13 +174,26 @@ impl VrfCoinFlipContract {
         match result {
             Ok(Some(vrf_response)) => {
                 let entry = &vrf_response.results[0];
-                log!("VRF result: value={}, alpha={}", entry.value, entry.alpha);
+                log!(
+                    "VRF result: value={}, alpha={}, signature={}..{}",
+                    entry.value,
+                    entry.alpha,
+                    &entry.signature_hex[..16],
+                    &entry.signature_hex[entry.signature_hex.len()-16..]
+                );
 
                 // Verify VRF proof on-chain
+                log!(
+                    "Verifying: ed25519_verify(sig[{}], alpha[{} bytes], pubkey={}..{})",
+                    entry.signature_hex.len() / 2,
+                    entry.alpha.len(),
+                    &hex::encode(&self.vrf_pubkey)[..16],
+                    &hex::encode(&self.vrf_pubkey)[48..]
+                );
                 if !self.verify_vrf_proof(entry) {
                     env::panic_str("VRF proof verification failed!");
                 }
-                log!("VRF proof verified on-chain!");
+                log!("ed25519_verify OK — VRF proof is valid, result is provably fair");
 
                 // Extract random number
                 let random_number = entry
