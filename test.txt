@@ -1,3 +1,7 @@
+# The path segment after /call/ is the OutLayer project (owner/name), not the GitHub repo.
+# It is a namespace of its own: the project is still called vrf-ark even though this
+# repository was renamed to out-layer/vrf-example.
+
 curl -X POST https://testnet-api.outlayer.fastnear.com/call/zavodil2.testnet/vrf-ark \
   -H "X-Payment-Key: owner:nonce:secret" \
   -H "Content-Type: application/json" \

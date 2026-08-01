@@ -1,16 +1,20 @@
 [package]
-name = "vrf-ark"
+name = "vrf-example"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
 description = "Verifiable Random Function (VRF) example for OutLayer"
 
 [[bin]]
-name = "vrf-ark"
+name = "vrf-example"
 path = "src/main.rs"
 
 [dependencies]
-# TODO: change to `outlayer = "0.2"` after publishing SDK with VRF support
-outlayer = { path = "../../sdk/outlayer" }
+# The SDK is taken from git, not crates.io: published `outlayer` 0.1.1 predates the `vrf`
+# module this example is built on. A path dependency cannot be used here either — it only
+# resolves inside the monorepo checkout, and OutLayer compiles this repository standalone
+# from GitHub. Switch to a crates.io version once an SDK release carrying `vrf` is out.
+outlayer = { git = "https://github.com/fastnear/near-outlayer", rev = "c6a8c0421a574ade162088053b068e18a98ae98e" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 

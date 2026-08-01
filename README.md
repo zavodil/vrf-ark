@@ -2,14 +2,14 @@
 
 Verifiable randomness for NEAR smart contracts using OutLayer VRF.
 
-Unlike `random-ark` (plain random, unverifiable), this example produces **cryptographic proof** that the random number wasn't manipulated. Anyone can verify the proof on-chain.
+Unlike `random-example` (plain random, unverifiable), this example produces **cryptographic proof** that the random number wasn't manipulated. Anyone can verify the proof on-chain.
 
 ## How It Works
 
 ```
 User calls flip_coin(Heads)
   --> NEAR Contract calls OutLayer
-    --> Worker executes vrf-ark.wasm (wasm32-wasip2)
+    --> Worker executes vrf-example.wasm (wasm32-wasip2)
       --> WASM calls outlayer::vrf::random("coin-flip")
         --> Worker host function: alpha = "vrf:{request_id}:coin-flip"
           --> Keystore (TEE): Ed25519 sign(vrf_key, alpha)
@@ -22,7 +22,7 @@ User calls flip_coin(Heads)
 
 ## VRF vs Plain Random
 
-| Feature | random-ark | vrf-ark |
+| Feature | random-example | vrf-example |
 |---------|-----------|---------|
 | Target | wasm32-wasip1 | wasm32-wasip2 |
 | Source | `rand` crate (WASI random) | OutLayer SDK `vrf::random()` |
@@ -71,7 +71,7 @@ User calls flip_coin(Heads)
 rustup target add wasm32-wasip2
 cargo build --target wasm32-wasip2 --release
 
-# Output: target/wasm32-wasip2/release/vrf-ark.wasm
+# Output: target/wasm32-wasip2/release/vrf-example.wasm
 ```
 
 ## On-Chain Verification
@@ -125,7 +125,7 @@ cargo near build non-reproducible-wasm
 ## Architecture
 
 ```
-vrf-ark (WASI module, wasm32-wasip2)
+vrf-example (WASI module, wasm32-wasip2)
   Uses: outlayer::vrf::random(seed)
   Returns: { value, signature_hex, alpha }
 
@@ -142,3 +142,7 @@ vrf-contract (NEAR contract)
 - **VRF key** is derived from the keystore's master secret (shared via MPC CKD). All approved keystores produce the same output.
 - **Deterministic**: same key + same alpha = same signature = same random output. No re-rolling.
 - **Proof**: Ed25519 signature over alpha. Verify with `env::ed25519_verify` (native NEAR, no extra deps).
+
+## License
+
+MIT OR Apache-2.0, at your option — see `LICENSE-MIT` and `LICENSE-APACHE`.
