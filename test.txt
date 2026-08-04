@@ -2,7 +2,7 @@
 # It is a namespace of its own: the project is still called vrf-ark even though this
 # repository was renamed to out-layer/vrf-example.
 
-curl -X POST https://testnet-api.outlayer.fastnear.com/call/zavodil2.testnet/vrf-ark \
+curl -X POST https://testnet-api.outlayer.ai/call/zavodil2.testnet/vrf-ark \
   -H "X-Payment-Key: owner:nonce:secret" \
   -H "Content-Type: application/json" \
   -d '{

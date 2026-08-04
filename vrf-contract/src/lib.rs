@@ -63,8 +63,8 @@ impl VrfCoinFlipContract {
     /// Initialize contract.
     ///
     /// `vrf_pubkey_hex` — Ed25519 public key (32 bytes, hex-encoded) used to verify VRF proofs.
-    /// Get it from: `curl https://api.outlayer.fastnear.com/vrf/pubkey`
-    /// or testnet: `curl https://testnet-api.outlayer.fastnear.com/vrf/pubkey`
+    /// Get it from: `curl https://api.outlayer.ai/vrf/pubkey`
+    /// or testnet: `curl https://testnet-api.outlayer.ai/vrf/pubkey`
     /// Response: `{"vrf_public_key_hex":"..."}` — pass that value here.
     ///
     /// Can be updated later via `set_vrf_pubkey()` (owner only).

@@ -58,7 +58,7 @@ User calls flip_coin(Heads)
   ],
   "verification": {
     "steps": ["1. Get VRF public key...", "2. Verify signature...", "..."],
-    "pubkey_endpoint": "https://api.outlayer.fastnear.com/vrf/pubkey",
+    "pubkey_endpoint": "https://api.outlayer.ai/vrf/pubkey",
     "near_code": "let valid = env::ed25519_verify(...);"
   }
 }
@@ -79,7 +79,7 @@ cargo build --target wasm32-wasip2 --release
 ### 1. Get VRF Public Key
 
 ```bash
-curl https://api.outlayer.fastnear.com/vrf/pubkey
+curl https://api.outlayer.ai/vrf/pubkey
 # {"vrf_public_key_hex": "a1b2c3..."}
 ```
 

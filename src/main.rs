@@ -106,12 +106,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         verification: Verification {
             vrf_public_key: vrf::public_key().unwrap_or_default(),
             steps: vec![
-                "1. Get VRF public key: GET https://api.outlayer.fastnear.com/vrf/pubkey".into(),
+                "1. Get VRF public key: GET https://api.outlayer.ai/vrf/pubkey".into(),
                 "2. For each result, verify: ed25519_verify(vrf_pubkey, alpha.as_bytes(), signature)".into(),
                 "3. Confirm output = SHA256(signature) matches the value".into(),
                 "4. Alpha contains request_id (from on-chain event) — cannot be forged".into(),
             ],
-            pubkey_endpoint: "https://api.outlayer.fastnear.com/vrf/pubkey".into(),
+            pubkey_endpoint: "https://api.outlayer.ai/vrf/pubkey".into(),
             near_code: concat!(
                 "let valid = env::ed25519_verify(",
                 "&vrf_pubkey_bytes, ",
