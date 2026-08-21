@@ -11,7 +11,7 @@ User calls flip_coin(Heads)
   --> NEAR Contract calls OutLayer
     --> Worker executes vrf-example.wasm (wasm32-wasip2)
       --> WASM calls outlayer::vrf::random("coin-flip")
-        --> Worker host function: alpha = "vrf:{request_id}:coin-flip"
+        --> Worker host function: alpha = "vrf:{request_id}:{sender_id}:coin-flip"
           --> Keystore (TEE): Ed25519 sign(vrf_key, alpha)
         <-- Returns: output (SHA256 of signature), signature (proof), alpha
       <-- WASM outputs JSON with value + proof
@@ -53,7 +53,7 @@ User calls flip_coin(Heads)
     {
       "value": 42,
       "signature_hex": "abcd...1234",
-      "alpha": "vrf:12345:my-unique-seed"
+      "alpha": "vrf:12345:alice.near:my-unique-seed"
     }
   ],
   "verification": {
@@ -90,7 +90,7 @@ use near_sdk::env;
 
 fn verify_vrf(
     vrf_pubkey: &[u8],    // 32 bytes from /vrf/pubkey
-    alpha: &str,           // "vrf:{request_id}:{user_seed}" from output
+    alpha: &str,           // take it FROM the output — see the note below
     signature: &[u8],      // 64 bytes from signature_hex
 ) -> bool {
     env::ed25519_verify(signature, alpha.as_bytes(), vrf_pubkey)
@@ -104,11 +104,33 @@ import { verify } from '@noble/ed25519';
 
 const pubkey = Buffer.from(vrfPubkeyHex, 'hex');
 const signature = Buffer.from(signatureHex, 'hex');
-const message = Buffer.from(alpha); // "vrf:{request_id}:{seed}"
+const message = Buffer.from(alpha); // exactly as returned, never rebuilt
 
 const valid = await verify(signature, message, pubkey);
 console.log('VRF proof valid:', valid);
 ```
+
+### Use the `alpha` you were given — do not rebuild it
+
+The signature covers those exact bytes, so a verifier that assembles its own
+string has to match the worker's format character for character or the check
+fails for a proof that is perfectly good.
+
+Today that format is `vrf:{request_id}:{sender_id}:{user_seed}`, where
+`sender_id` is the account that PAID for the call — the payment key's owner
+over HTTPS, the transaction's sender on chain. It is deliberately not the name
+the guest runs under: a wallet using Agent Connect with `use_bound_identity`
+acts as its bound account, and if the alpha followed that, the same module with
+the same flag would draw a different random stream depending on which door
+started it.
+
+`request_id` is unique per call regardless, so this changes no guarantee about
+the randomness itself. What it buys is that one agent gets one answer to "whose
+domain is this", and that the string stays reconstructible from the paying
+account if you ever need to reason about it offline.
+
+None of that matters if the returned `alpha` is passed through unchanged, which
+is why every example here does exactly that.
 
 ## Example Contract
 
